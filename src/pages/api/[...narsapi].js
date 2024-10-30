@@ -104,6 +104,8 @@ async function handleSignup(req, res) {
       'INSERT INTO user_login (user_firstname, user_lastname, contact, email) VALUES (?, ?, ?, ?)',
       [firstname, lastname, mobile, email]
     );
+
+    // Generate a session token (e.g., JWT) and send it back to the client
     const token = sign({ userId: result.insertId }, process.env.JWT_SECRET, { expiresIn: '6h' });
     res.status(200).json({ message: 'Signup successful', token });
   } catch (error) {
@@ -127,28 +129,9 @@ async function handleSignin(req, res) {
       return res.status(401).json({ success: false, error: 'Invalid email or password' });
     }
 
+    // Generate a session token (e.g., JWT) and send it back to the client
     const token = sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '6h' });
-
-    req.session.user = {
-      id: user.id,
-      firstName: user.firstName,
-      email: user.email
-    };
-    await req.session.save();
-
-    await query('UPDATE user_login SET logout_time = NULL WHERE email = ?', [email]);
-
-    const loginTime = new Date();
-    await query('UPDATE user_login SET login_time = ? WHERE email = ?', [loginTime, email]);
-
-    res.setHeader('Set-Cookie', `authToken=${token}; HttpOnly; Path=/; Max-Age=3600; SameSite=Strict${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`);
-
-    res.status(200).json({ 
-      success: true, 
-      message: 'Signin successful', 
-      token, 
-      firstName: user.firstName 
-    });
+    res.status(200).json({ success: true, message: 'Signin successful', token, firstName: user.firstName });
   } catch (error) {
     console.error('Signin error:', error);
     res.status(500).json({ success: false, error: 'An error occurred during signin' });
@@ -683,15 +666,3 @@ async function handleSubmitRatings(req, res) {
   
   
   
- 
-  
-
-  export default withIronSession(handler, {
-    password: process.env.SESSION_PASSWORD,
-    cookieName: 'nars_session',
-    cookieOptions: {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      httpOnly: true,
-    },
-  });
