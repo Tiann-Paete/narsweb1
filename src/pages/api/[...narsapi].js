@@ -3,7 +3,6 @@ import bcrypt from 'bcrypt';
 import { sign, verify } from 'jsonwebtoken';
 import { query } from '../../utils/db';
 import crypto from 'crypto';
-import { withIronSession } from 'next-iron-session';
 
 const handler = async (req, res) => {
     const { method } = req;
